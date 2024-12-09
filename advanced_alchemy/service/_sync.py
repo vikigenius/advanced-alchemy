@@ -18,7 +18,6 @@ from advanced_alchemy.exceptions import AdvancedAlchemyError, ErrorMessages, Rep
 from advanced_alchemy.repository import (
     SQLAlchemySyncQueryRepository,
     SQLAlchemySyncRepositoryProtocol,
-    SQLAlchemySyncSlugRepositoryProtocol,
 )
 from advanced_alchemy.repository._util import (
     LoadSpec,
@@ -27,8 +26,6 @@ from advanced_alchemy.repository._util import (
 from advanced_alchemy.repository.typing import (
     ModelT,
     OrderingPair,
-    SQLAlchemyAsyncRepositoryT,
-    SQLAlchemySyncRepositoryT,
 )
 from advanced_alchemy.service._util import ResultConverter
 from advanced_alchemy.service.typing import (
@@ -95,10 +92,10 @@ class SQLAlchemySyncQueryService(ResultConverter):
                 yield cls(session=db_session)
 
 
-class SQLAlchemySyncRepositoryReadService(ResultConverter, Generic[ModelT, SQLAlchemySyncRepositoryT]):
+class SQLAlchemySyncRepositoryReadService(ResultConverter, Generic[ModelT], SQLAlchemySyncRepositoryProtocol[ModelT]):
     """Service object that operates on a repository object."""
 
-    repository_type: type[SQLAlchemySyncRepositoryProtocol[ModelT] | SQLAlchemySyncSlugRepositoryProtocol[ModelT]]
+    repository_type: type[SQLAlchemySyncRepositoryProtocol[ModelT]]
     """Type of the repository to use."""
     loader_options: LoadSpec | None = None
     """Default loader options for the repository."""
@@ -136,20 +133,17 @@ class SQLAlchemySyncRepositoryReadService(ResultConverter, Generic[ModelT, SQLAl
         """
         load = load if load is not None else self.loader_options
         execution_options = execution_options if execution_options is not None else self.execution_options
-        self.repository = cast(
-            "SQLAlchemyAsyncRepositoryT",
-            self.repository_type(
-                session=session,
-                statement=statement,
-                auto_expunge=auto_expunge,
-                auto_refresh=auto_refresh,
-                auto_commit=auto_commit,
-                order_by=order_by,
-                error_messages=error_messages,
-                load=load,
-                execution_options=execution_options,
-                **repo_kwargs,
-            ),
+        self.repository = self.repository_type(
+            session=session,
+            statement=statement,
+            auto_expunge=auto_expunge,
+            auto_refresh=auto_refresh,
+            auto_commit=auto_commit,
+            order_by=order_by,
+            error_messages=error_messages,
+            load=load,
+            execution_options=execution_options,
+            **repo_kwargs,
         )
 
     def count(
@@ -366,7 +360,7 @@ class SQLAlchemySyncRepositoryReadService(ResultConverter, Generic[ModelT, SQLAl
         load: LoadSpec | None = None,
         execution_options: dict[str, Any] | None = None,
         **kwargs: Any,
-    ) -> tuple[Sequence[ModelT], int]:
+    ) -> tuple[list[ModelT], int]:
         """List of records and total count returned by query.
 
         Args:
@@ -445,7 +439,7 @@ class SQLAlchemySyncRepositoryReadService(ResultConverter, Generic[ModelT, SQLAl
         load: LoadSpec | None = None,
         execution_options: dict[str, Any] | None = None,
         **kwargs: Any,
-    ) -> Sequence[ModelT]:
+    ) -> list[ModelT]:
         """Wrap repository scalars operation.
 
         Args:
@@ -474,7 +468,7 @@ class SQLAlchemySyncRepositoryReadService(ResultConverter, Generic[ModelT, SQLAl
         )
 
 
-class SQLAlchemySyncRepositoryService(SQLAlchemySyncRepositoryReadService[ModelT, SQLAlchemySyncRepositoryT]):
+class SQLAlchemySyncRepositoryService(SQLAlchemySyncRepositoryReadService[ModelT]):
     """Service object that operates on a repository object."""
 
     def create(
@@ -614,7 +608,7 @@ class SQLAlchemySyncRepositoryService(SQLAlchemySyncRepositoryReadService[ModelT
         error_messages: ErrorMessages | None | EmptyType = Empty,
         load: LoadSpec | None = None,
         execution_options: dict[str, Any] | None = None,
-    ) -> Sequence[ModelT]:
+    ) -> list[ModelT]:
         """Wrap repository bulk instance update.
 
         Args:
@@ -708,7 +702,7 @@ class SQLAlchemySyncRepositoryService(SQLAlchemySyncRepositoryReadService[ModelT
         error_messages: ErrorMessages | None | EmptyType = Empty,
         load: LoadSpec | None = None,
         execution_options: dict[str, Any] | None = None,
-    ) -> Sequence[ModelT]:
+    ) -> list[ModelT]:
         """Wrap repository upsert operation.
 
         Args:

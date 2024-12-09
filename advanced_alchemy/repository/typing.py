@@ -51,24 +51,7 @@ ModelOrRowMappingT = TypeVar("ModelOrRowMappingT", bound="Union[base.ModelProtoc
 
 :class:`advanced_alchemy.base.ModelProtocol` | :class:`~sqlalchemy.engine.RowMapping`
 """
-SQLAlchemySyncRepositoryT = TypeVar(
-    "SQLAlchemySyncRepositoryT",
-    bound="SQLAlchemySyncRepositoryProtocol[base.ModelProtocol]",
-    covariant=True,
-)
-"""Type variable for synchronous SQLAlchemy repositories.
 
-:class:`advanced_alchemy.repository.SQLAlchemySyncRepository`
-"""
-SQLAlchemyAsyncRepositoryT = TypeVar(
-    "SQLAlchemyAsyncRepositoryT",
-    bound="SQLAlchemyAsyncRepositoryProtocol[base.ModelProtocol]",
-    covariant=True,
-)
-"""Type variable for asynchronous SQLAlchemy repositories.
-
-:class:`advanced_alchemy.repository.SQLAlchemyAsyncRepository`
-"""
 OrderingPair: TypeAlias = Tuple[Union[str, InstrumentedAttribute[Any]], bool]
 """Type alias for ordering pairs.
 

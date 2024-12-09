@@ -16,13 +16,12 @@ from advanced_alchemy.exceptions import AdvancedAlchemyError, ErrorMessages, Rep
 from advanced_alchemy.repository import (
     SQLAlchemyAsyncQueryRepository,
     SQLAlchemyAsyncRepositoryProtocol,
-    SQLAlchemyAsyncSlugRepositoryProtocol,
 )
 from advanced_alchemy.repository._util import (
     LoadSpec,
     model_from_dict,
 )
-from advanced_alchemy.repository.typing import ModelT, OrderingPair, SQLAlchemyAsyncRepositoryT
+from advanced_alchemy.repository.typing import ModelT, OrderingPair
 from advanced_alchemy.service._util import ResultConverter
 from advanced_alchemy.service.typing import (
     BulkModelDictT,
@@ -89,10 +88,10 @@ class SQLAlchemyAsyncQueryService(ResultConverter):
                 yield cls(session=db_session)
 
 
-class SQLAlchemyAsyncRepositoryReadService(ResultConverter, Generic[ModelT, SQLAlchemyAsyncRepositoryT]):
+class SQLAlchemyAsyncRepositoryReadService(ResultConverter, Generic[ModelT], SQLAlchemyAsyncRepositoryProtocol[ModelT]):
     """Service object that operates on a repository object."""
 
-    repository_type: type[SQLAlchemyAsyncRepositoryProtocol[ModelT] | SQLAlchemyAsyncSlugRepositoryProtocol[ModelT]]
+    repository_type: type[SQLAlchemyAsyncRepositoryProtocol[ModelT]]
     """Type of the repository to use."""
     loader_options: LoadSpec | None = None
     """Default loader options for the repository."""
@@ -130,9 +129,7 @@ class SQLAlchemyAsyncRepositoryReadService(ResultConverter, Generic[ModelT, SQLA
         """
         load = load if load is not None else self.loader_options
         execution_options = execution_options if execution_options is not None else self.execution_options
-        self.repository = cast(
-            "SQLAlchemyAsyncRepositoryT",
-            self.repository_type(
+        self.repository = self.repository_type(
                 session=session,
                 statement=statement,
                 auto_expunge=auto_expunge,
@@ -143,7 +140,6 @@ class SQLAlchemyAsyncRepositoryReadService(ResultConverter, Generic[ModelT, SQLA
                 load=load,
                 execution_options=execution_options,
                 **repo_kwargs,
-            ),
         )
 
     async def count(
@@ -360,7 +356,7 @@ class SQLAlchemyAsyncRepositoryReadService(ResultConverter, Generic[ModelT, SQLA
         load: LoadSpec | None = None,
         execution_options: dict[str, Any] | None = None,
         **kwargs: Any,
-    ) -> tuple[Sequence[ModelT], int]:
+    ) -> tuple[list[ModelT], int]:
         """List of records and total count returned by query.
 
         Args:
@@ -439,7 +435,7 @@ class SQLAlchemyAsyncRepositoryReadService(ResultConverter, Generic[ModelT, SQLA
         load: LoadSpec | None = None,
         execution_options: dict[str, Any] | None = None,
         **kwargs: Any,
-    ) -> Sequence[ModelT]:
+    ) -> list[ModelT]:
         """Wrap repository scalars operation.
 
         Args:
@@ -468,7 +464,7 @@ class SQLAlchemyAsyncRepositoryReadService(ResultConverter, Generic[ModelT, SQLA
         )
 
 
-class SQLAlchemyAsyncRepositoryService(SQLAlchemyAsyncRepositoryReadService[ModelT, SQLAlchemyAsyncRepositoryT]):
+class SQLAlchemyAsyncRepositoryService(SQLAlchemyAsyncRepositoryReadService[ModelT]):
     """Service object that operates on a repository object."""
 
     async def create(
@@ -608,7 +604,7 @@ class SQLAlchemyAsyncRepositoryService(SQLAlchemyAsyncRepositoryReadService[Mode
         error_messages: ErrorMessages | None | EmptyType = Empty,
         load: LoadSpec | None = None,
         execution_options: dict[str, Any] | None = None,
-    ) -> Sequence[ModelT]:
+    ) -> list[ModelT]:
         """Wrap repository bulk instance update.
 
         Args:
@@ -702,7 +698,7 @@ class SQLAlchemyAsyncRepositoryService(SQLAlchemyAsyncRepositoryReadService[Mode
         error_messages: ErrorMessages | None | EmptyType = Empty,
         load: LoadSpec | None = None,
         execution_options: dict[str, Any] | None = None,
-    ) -> Sequence[ModelT]:
+    ) -> list[ModelT]:
         """Wrap repository upsert operation.
 
         Args:
